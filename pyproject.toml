@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tolvyn"
+version = "0.1.0"
+description = "Drop-in replacement for the OpenAI/Anthropic SDK — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-asyncio"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tolvyn*"]
+
+[tool.pytest.ini_options]
+markers = ["integration: requires live proxy and real API keys"]
