@@ -7,7 +7,7 @@ import httpx
 from tolvyn._config import resolve_tolvyn_key, resolve_proxy_url, resolve_fallback_key
 from tolvyn._failopen import make_failopen_transport, make_failopen_async_transport
 
-_OPENAI_DEFAULT_URL = "http://localhost:8081/v1/proxy/openai"
+_OPENAI_DEFAULT_URL = "https://proxy.tolvyn.io/v1/proxy/openai/"
 _OPENAI_DIRECT_URL = "https://api.openai.com/v1"
 
 

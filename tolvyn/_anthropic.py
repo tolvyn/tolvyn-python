@@ -7,7 +7,7 @@ import httpx
 from tolvyn._config import resolve_tolvyn_key, resolve_proxy_url, resolve_fallback_key
 from tolvyn._failopen import make_failopen_transport, make_failopen_async_transport
 
-_ANTHROPIC_DEFAULT_URL = "http://localhost:8081/v1/proxy/anthropic"
+_ANTHROPIC_DEFAULT_URL = "https://proxy.tolvyn.io/v1/proxy/anthropic/"
 _ANTHROPIC_DIRECT_URL = "https://api.anthropic.com"
 
 
