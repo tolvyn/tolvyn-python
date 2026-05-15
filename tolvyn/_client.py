@@ -16,6 +16,8 @@ def _build_tolvyn_headers(
     service: str | None,
     feature: str | None,
     agent: str | None,
+    user: str | None,
+    end_customer: str | None,
 ) -> dict[str, str]:
     headers: dict[str, str] = {}
     if team:
@@ -26,6 +28,10 @@ def _build_tolvyn_headers(
         headers["X-Tolvyn-Feature"] = feature
     if agent:
         headers["X-Tolvyn-Agent"] = agent
+    if user:
+        headers["X-Tolvyn-User"] = user
+    if end_customer:
+        headers["X-Tolvyn-End-Customer"] = end_customer
     return headers
 
 
@@ -48,6 +54,8 @@ class OpenAI(_openai.OpenAI):
         service: str | None = None,
         feature: str | None = None,
         agent: str | None = None,
+        user: str | None = None,
+        end_customer: str | None = None,
         fail_open: bool = True,
         openai_api_key: str | None = None,
         **kwargs,
@@ -55,7 +63,7 @@ class OpenAI(_openai.OpenAI):
         key = resolve_tolvyn_key(tolvyn_api_key)
         url = resolve_proxy_url(proxy_url, _OPENAI_DEFAULT_URL)
         fallback = resolve_fallback_key(openai_api_key, "OPENAI_API_KEY")
-        headers = _build_tolvyn_headers(team, service, feature, agent)
+        headers = _build_tolvyn_headers(team, service, feature, agent, user, end_customer)
 
         # Build custom httpx client with fail-open transport if requested.
         if fail_open and fallback and "http_client" not in kwargs:
@@ -84,6 +92,8 @@ class AsyncOpenAI(_openai.AsyncOpenAI):
         service: str | None = None,
         feature: str | None = None,
         agent: str | None = None,
+        user: str | None = None,
+        end_customer: str | None = None,
         fail_open: bool = True,
         openai_api_key: str | None = None,
         **kwargs,
@@ -91,7 +101,7 @@ class AsyncOpenAI(_openai.AsyncOpenAI):
         key = resolve_tolvyn_key(tolvyn_api_key)
         url = resolve_proxy_url(proxy_url, _OPENAI_DEFAULT_URL)
         fallback = resolve_fallback_key(openai_api_key, "OPENAI_API_KEY")
-        headers = _build_tolvyn_headers(team, service, feature, agent)
+        headers = _build_tolvyn_headers(team, service, feature, agent, user, end_customer)
 
         if fail_open and fallback and "http_client" not in kwargs:
             transport = make_failopen_async_transport(url, _OPENAI_DIRECT_URL, fallback, "OpenAI")
