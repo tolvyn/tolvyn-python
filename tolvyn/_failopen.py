@@ -1,4 +1,5 @@
 """Fail-open transport wrapper for httpx."""
+import re
 import sys
 import httpx
 
@@ -11,6 +12,8 @@ _PROXY_ERRORS = (
     httpx.RemoteProtocolError,
 )
 
+_PROXY_PREFIX_RE = re.compile(r"^/v1/proxy/(?:openai|anthropic|google)/")
+
 
 def _should_failopen(exc: Exception) -> bool:
     """Return True if the error indicates the proxy is unreachable (not a real API error)."""
@@ -19,6 +22,37 @@ def _should_failopen(exc: Exception) -> bool:
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code == 503
     return False
+
+
+def _build_fallback_url(request_url: httpx.URL, fallback_base: str) -> httpx.URL:
+    """Build the direct-provider URL from a proxy request URL.
+
+    Strips the /v1/proxy/{provider}/ prefix from the request path, then prepends
+    the fallback base URL's path (e.g. "/v1" for OpenAI, "" for Anthropic) so
+    the final URL hits the real provider endpoint.
+
+    Example (OpenAI):
+        request_url:    https://proxy.tolvyn.io/v1/proxy/openai/chat/completions
+        fallback_base:  https://api.openai.com/v1
+        → https://api.openai.com/v1/chat/completions
+
+    Example (Anthropic):
+        request_url:    https://proxy.tolvyn.io/v1/proxy/anthropic/v1/messages
+        fallback_base:  https://api.anthropic.com
+        → https://api.anthropic.com/v1/messages
+    """
+    fb = httpx.URL(fallback_base)
+    fb_base_path = fb.path.rstrip("/")  # "/v1" or ""
+
+    stripped = _PROXY_PREFIX_RE.sub("/", request_url.path)
+    final_path = fb_base_path + stripped
+
+    return request_url.copy_with(
+        host=fb.host,
+        scheme=fb.scheme,
+        port=fb.port,
+        path=final_path,
+    )
 
 
 def make_failopen_transport(
@@ -48,15 +82,9 @@ def make_failopen_transport(
                     f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
                     file=sys.stderr,
                 )
-                # Rebuild request pointing at the real API.
-                new_url = httpx.URL(str(request.url)).copy_with(
-                    host=httpx.URL(fallback_url).host,
-                    scheme=httpx.URL(fallback_url).scheme,
-                    port=httpx.URL(fallback_url).port,
-                )
+                new_url = _build_fallback_url(request.url, fallback_url)
                 new_headers = dict(request.headers)
                 new_headers["authorization"] = f"Bearer {fallback_key}"
-                new_request = request.stream.__class__  # keep stream type
                 fallback_req = httpx.Request(
                     method=request.method,
                     url=new_url,
@@ -93,11 +121,7 @@ def make_failopen_async_transport(
                     f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
                     file=sys.stderr,
                 )
-                new_url = httpx.URL(str(request.url)).copy_with(
-                    host=httpx.URL(fallback_url).host,
-                    scheme=httpx.URL(fallback_url).scheme,
-                    port=httpx.URL(fallback_url).port,
-                )
+                new_url = _build_fallback_url(request.url, fallback_url)
                 new_headers = dict(request.headers)
                 new_headers["authorization"] = f"Bearer {fallback_key}"
                 fallback_req = httpx.Request(
