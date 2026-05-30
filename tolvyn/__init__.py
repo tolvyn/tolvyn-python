@@ -7,7 +7,7 @@ require the optional dependencies of the others. For example::
 """
 
 __all__ = ["OpenAI", "AsyncOpenAI", "Anthropic", "AsyncAnthropic", "Google"]
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 _LAZY = {
     "OpenAI": "tolvyn._client",
