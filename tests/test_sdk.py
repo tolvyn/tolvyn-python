@@ -121,3 +121,44 @@ def test_anthropic_tag_headers():
     assert headers.get("X-Tolvyn-Team") == "ml-team"
     assert headers.get("X-Tolvyn-Feature") == "summarizer"
     assert "X-Tolvyn-Service" not in headers
+
+
+# ── Fail-open direct auth (PY-08 / PY-09) ─────────────────────────────────────
+
+def test_fallback_auth_openai():
+    from tolvyn._failopen import _apply_fallback_auth
+    # OpenAI's proxy request carries Authorization: Bearer <tolvyn key>.
+    h = {"authorization": "Bearer tlv_live_secret", "content-type": "application/json"}
+    _apply_fallback_auth(h, "OpenAI", "sk-openai-fallback")
+    assert h["authorization"] == "Bearer sk-openai-fallback"
+    assert "x-api-key" not in h and "x-goog-api-key" not in h
+    assert h["content-type"] == "application/json"  # non-auth headers preserved
+
+
+def test_fallback_auth_anthropic_strips_tolvyn_key():
+    from tolvyn._failopen import _apply_fallback_auth
+    # Anthropic SDK sends the TOLVYN key in x-api-key — it MUST NOT leak, and the
+    # direct call must use x-api-key (not Bearer) with the provider key.
+    h = {"x-api-key": "tlv_live_secret", "anthropic-version": "2023-06-01"}
+    _apply_fallback_auth(h, "Anthropic", "sk-ant-fallback")
+    assert h["x-api-key"] == "sk-ant-fallback"          # provider key, not TOLVYN key
+    assert "tlv_live_secret" not in h.values()           # PY-09: no leak
+    assert "authorization" not in h                       # PY-08: no Bearer
+    assert h["anthropic-version"] == "2023-06-01"         # required header preserved
+
+
+def test_fallback_auth_google_strips_tolvyn_key():
+    from tolvyn._failopen import _apply_fallback_auth
+    h = {"x-goog-api-key": "tlv_live_secret"}
+    _apply_fallback_auth(h, "Google", "goog-fallback")
+    assert h["x-goog-api-key"] == "goog-fallback"
+    assert "tlv_live_secret" not in h.values()
+    assert "authorization" not in h and "x-api-key" not in h
+
+
+def test_fallback_auth_strips_all_inbound_auth():
+    from tolvyn._failopen import _apply_fallback_auth
+    # Defensive: even if multiple auth headers are present, only the correct one survives.
+    h = {"authorization": "Bearer tlv", "x-api-key": "tlv", "x-goog-api-key": "tlv"}
+    _apply_fallback_auth(h, "anthropic", "sk-ant-fallback")
+    assert h == {"x-api-key": "sk-ant-fallback"}
