@@ -4,7 +4,13 @@ from __future__ import annotations
 import threading
 import warnings
 
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError as exc:  # pragma: no cover - exercised only when dep is absent
+    raise ImportError(
+        "Google provider requires google-generativeai: "
+        "pip install google-generativeai"
+    ) from exc
 
 from tolvyn._config import resolve_tolvyn_key, resolve_fallback_key
 
