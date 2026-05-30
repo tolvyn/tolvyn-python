@@ -55,6 +55,41 @@ def _build_fallback_url(request_url: httpx.URL, fallback_base: str) -> httpx.URL
     )
 
 
+# The header each provider's DIRECT API reads the API key from. The TOLVYN proxy
+# accepts Authorization/x-api-key/x-goog-api-key interchangeably, but the
+# providers themselves do NOT: Anthropic authenticates only via x-api-key and
+# Google only via x-goog-api-key — sending Bearer to them 401s.
+_PROVIDER_AUTH_HEADER = {
+    "openai": "authorization",
+    "anthropic": "x-api-key",
+    "google": "x-goog-api-key",
+}
+
+# Every auth header that may carry the TOLVYN key on the inbound proxy request.
+# All are stripped before the correct provider header is set, so the TOLVYN key
+# is never leaked to the provider on a fail-open direct call.
+_ALL_AUTH_HEADERS = ("authorization", "x-api-key", "x-goog-api-key")
+
+
+def _apply_fallback_auth(headers: dict, provider: str, fallback_key: str) -> None:
+    """Rewrite *headers* in place to authenticate a direct provider call.
+
+    Strips every inbound auth header (each may carry the TOLVYN key) and sets the
+    single header the provider's direct API expects, with the provider's own key:
+      - OpenAI    -> Authorization: Bearer <key>
+      - Anthropic -> x-api-key: <key>
+      - Google    -> x-goog-api-key: <key>
+
+    Fixes PY-08 (Bearer sent to Anthropic/Google → 401) and PY-09 (the TOLVYN key
+    in the original x-api-key/x-goog-api-key leaking to the provider on fallback).
+    httpx lowercases header keys in dict(request.headers), so keys are lowercase.
+    """
+    for h in _ALL_AUTH_HEADERS:
+        headers.pop(h, None)
+    header = _PROVIDER_AUTH_HEADER.get(provider.lower(), "authorization")
+    headers[header] = f"Bearer {fallback_key}" if header == "authorization" else fallback_key
+
+
 def make_failopen_transport(
     proxy_url: str,
     fallback_url: str,
@@ -84,7 +119,7 @@ def make_failopen_transport(
                 )
                 new_url = _build_fallback_url(request.url, fallback_url)
                 new_headers = dict(request.headers)
-                new_headers["authorization"] = f"Bearer {fallback_key}"
+                _apply_fallback_auth(new_headers, provider, fallback_key)
                 fallback_req = httpx.Request(
                     method=request.method,
                     url=new_url,
@@ -123,7 +158,7 @@ def make_failopen_async_transport(
                 )
                 new_url = _build_fallback_url(request.url, fallback_url)
                 new_headers = dict(request.headers)
-                new_headers["authorization"] = f"Bearer {fallback_key}"
+                _apply_fallback_auth(new_headers, provider, fallback_key)
                 fallback_req = httpx.Request(
                     method=request.method,
                     url=new_url,
