@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tolvyn"
-version = "0.1.7"
-description = "Drop-in replacement for the OpenAI/Anthropic SDK — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
+version = "0.1.8"
+description = "Drop-in replacement for the OpenAI/Anthropic/Google/DeepSeek SDKs — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
