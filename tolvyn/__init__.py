@@ -6,8 +6,13 @@ require the optional dependencies of the others. For example::
     from tolvyn import Anthropic   # does not import google.generativeai
 """
 
-__all__ = ["OpenAI", "AsyncOpenAI", "Anthropic", "AsyncAnthropic", "Google"]
-__version__ = "0.1.7"
+__all__ = [
+    "OpenAI", "AsyncOpenAI",
+    "Anthropic", "AsyncAnthropic",
+    "Google",
+    "DeepSeek", "AsyncDeepSeek",
+]
+__version__ = "0.1.8"
 
 _LAZY = {
     "OpenAI": "tolvyn._client",
@@ -15,6 +20,8 @@ _LAZY = {
     "Anthropic": "tolvyn._anthropic",
     "AsyncAnthropic": "tolvyn._anthropic",
     "Google": "tolvyn._google",
+    "DeepSeek": "tolvyn._deepseek",
+    "AsyncDeepSeek": "tolvyn._deepseek",
 }
 
 

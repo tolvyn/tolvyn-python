@@ -12,7 +12,7 @@ _PROXY_ERRORS = (
     httpx.RemoteProtocolError,
 )
 
-_PROXY_PREFIX_RE = re.compile(r"^/v1/proxy/(?:openai|anthropic|google)/")
+_PROXY_PREFIX_RE = re.compile(r"^/v1/proxy/(?:openai|anthropic|google|deepseek)/")
 
 
 def _should_failopen(exc: Exception) -> bool:
@@ -63,6 +63,7 @@ _PROVIDER_AUTH_HEADER = {
     "openai": "authorization",
     "anthropic": "x-api-key",
     "google": "x-goog-api-key",
+    "deepseek": "authorization",  # OpenAI-compatible; Bearer auth (same as the default)
 }
 
 # Every auth header that may carry the TOLVYN key on the inbound proxy request.
