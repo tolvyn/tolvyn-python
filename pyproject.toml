@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tolvyn"
-version = "0.1.8"
+version = "0.1.9"
 description = "Drop-in replacement for the OpenAI/Anthropic/Google/DeepSeek SDKs — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -12,6 +12,19 @@ license = { text = "MIT" }
 dependencies = [
     "openai>=1.0.0",
     "anthropic>=0.20.0",
+    # BE-488: tolvyn/_client.py, _anthropic.py, _deepseek.py and _failopen.py
+    # all `import httpx` and it was never declared. It worked by accident while
+    # `openai` happened to depend on httpx; openai 3.x declares `httpx2`
+    # instead, so a clean `pip install tolvyn` now resolves WITHOUT httpx and
+    # `from tolvyn import OpenAI` raises ModuleNotFoundError.
+    #
+    # THE LOWER BOUND IS CHOSEN FROM WHAT THE CODE USES, not guessed: Client,
+    # AsyncClient, HTTPTransport, AsyncHTTPTransport, Request, Response, URL,
+    # HTTPStatusError, ConnectError, ConnectTimeout, ReadTimeout, WriteTimeout,
+    # RemoteProtocolError. The custom-transport surface settled in 0.23 and all
+    # of those names have been stable since; there is no upper bound because
+    # nothing here touches an API httpx has signalled it will change.
+    "httpx>=0.23",
 ]
 
 [project.optional-dependencies]
