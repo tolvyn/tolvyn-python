@@ -101,6 +101,21 @@ got = set(SEEN[0]) if SEEN else set()
 if got != want:
     print(f"FAIL: headers {sorted(got)} != {sorted(want)}"); sys.exit(1)
 print("  all six X-Tolvyn-* headers — ok")
+
+# THE VERSION THE PACKAGE REPORTS MUST BE THE VERSION THAT WAS BUILT.
+# tolvyn 0.1.9 was PUBLISHED reporting __version__ == "0.1.8": pyproject.toml
+# was bumped and tolvyn/__init__.py's literal was not. A customer debugging a
+# version-specific problem would have been told the wrong answer by the package
+# itself, and nothing checked it. __version__ is now derived from the installed
+# metadata, so this assertion is a guard against someone reintroducing a
+# literal rather than against a typo. BE-489.
+import tolvyn
+from importlib.metadata import version as _v
+if tolvyn.__version__ != _v("tolvyn"):
+    print(f"FAIL: tolvyn.__version__ = {tolvyn.__version__!r} but the installed "
+          f"distribution is {_v('tolvyn')!r} — the two have drifted")
+    sys.exit(1)
+print(f"  __version__ agrees with the distribution ({tolvyn.__version__}) — ok")
 CHK
 
 ./.venv/bin/python check.py
