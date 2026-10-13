@@ -13,12 +13,10 @@ requires-python = ">=3.9"
 # remove deprecated calls" -- so the build has been printing a
 # SetuptoolsDeprecationWarning on every wheel. BE-490.
 license = "MIT"
-# `license-files` is NOT set, and that is deliberate rather than forgotten:
-# THERE IS NO LICENSE FILE IN THIS REPOSITORY. Adding the key would fail the
-# build, and writing the file would mean inventing a copyright holder -- which
-# is a legal statement, not a packaging fix. README.md's own
-# [License: MIT](LICENSE) badge therefore links to a file that does not exist,
-# on PyPI as well as on GitHub. BE-491.
+# BE-491 FIXED: the LICENSE file now exists, so the key that ships it is set.
+# Until 2026-10-13 there was no LICENSE in this repository and README.md's own
+# [License: MIT](LICENSE) badge linked to nothing -- on PyPI as well as GitHub.
+license-files = ["LICENSE"]
 dependencies = [
     "openai>=1.0.0",
     "anthropic>=0.20.0",
