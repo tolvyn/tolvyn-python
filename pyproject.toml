@@ -4,11 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tolvyn"
-version = "0.1.9"
+version = "0.1.10"
 description = "Drop-in replacement for the OpenAI/Anthropic/Google/DeepSeek SDKs — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+# A SPDX STRING, NOT A TOML TABLE. setuptools deprecated the table form and
+# names a deadline -- "By 2027-Feb-18, you need to update your project and
+# remove deprecated calls" -- so the build has been printing a
+# SetuptoolsDeprecationWarning on every wheel. BE-490.
+license = "MIT"
+# `license-files` is NOT set, and that is deliberate rather than forgotten:
+# THERE IS NO LICENSE FILE IN THIS REPOSITORY. Adding the key would fail the
+# build, and writing the file would mean inventing a copyright holder -- which
+# is a legal statement, not a packaging fix. README.md's own
+# [License: MIT](LICENSE) badge therefore links to a file that does not exist,
+# on PyPI as well as on GitHub. BE-491.
 dependencies = [
     "openai>=1.0.0",
     "anthropic>=0.20.0",
