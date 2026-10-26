@@ -4,24 +4,39 @@ import sys
 import httpx
 
 
+# FAIL OPEN ONLY WHEN THE PROXY WAS NEVER REACHED. ConnectError covers refused
+# connections, DNS failure and TLS handshake failure; ConnectTimeout is a timeout
+# while connecting. Nothing here can have been forwarded to the provider, so a
+# direct retry cannot double-bill and cannot bypass anything TOLVYN already did.
+#
+# DELIBERATELY ABSENT: ReadTimeout, WriteTimeout, RemoteProtocolError, ReadError.
+# Each can happen AFTER the proxy forwarded the request — the provider may already
+# be serving (and charging for) it — so retrying direct produced a second,
+# unmetered provider call. Measured: a read timeout after forwarding gave two
+# provider calls, one through TOLVYN and one around it.
 _PROXY_ERRORS = (
     httpx.ConnectError,
     httpx.ConnectTimeout,
-    httpx.ReadTimeout,
-    httpx.WriteTimeout,
-    httpx.RemoteProtocolError,
 )
+
+# A 503 fails open ONLY when TOLVYN itself says it is unavailable. A plain 503 on
+# the proxy path is the PROVIDER's own 503 passed through (the server never
+# writes 503 on /v1/proxy/), and retrying it direct only moved the spend out of
+# TOLVYN's view. Enforcement responses (451 kill switch, 429 budget/quota) never
+# fail open either.
+TOLVYN_UNAVAILABLE_HEADER = "x-tolvyn-unavailable"
+
+
+def _is_tolvyn_unavailable(response: httpx.Response) -> bool:
+    return response.status_code == 503 and response.headers.get(TOLVYN_UNAVAILABLE_HEADER, "").strip() == "1"
+
 
 _PROXY_PREFIX_RE = re.compile(r"^/v1/proxy/(?:openai|anthropic|google|deepseek)/")
 
 
 def _should_failopen(exc: Exception) -> bool:
-    """Return True if the error indicates the proxy is unreachable (not a real API error)."""
-    if isinstance(exc, _PROXY_ERRORS):
-        return True
-    if isinstance(exc, httpx.HTTPStatusError):
-        return exc.response.status_code == 503
-    return False
+    """Return True only if the proxy was never reached (see _PROXY_ERRORS)."""
+    return isinstance(exc, _PROXY_ERRORS)
 
 
 def _build_fallback_url(request_url: httpx.URL, fallback_base: str) -> httpx.URL:
@@ -91,6 +106,27 @@ def _apply_fallback_auth(headers: dict, provider: str, fallback_key: str) -> Non
     headers[header] = f"Bearer {fallback_key}" if header == "authorization" else fallback_key
 
 
+# Never copied onto the direct request. `host` is the PROXY's host — sending it to
+# the provider names the wrong virtual host; content-length and the hop-by-hop
+# headers are recomputed for the new request.
+_NOT_FORWARDED = frozenset({"host", "content-length", "transfer-encoding", "connection",
+                            "keep-alive", "te", "trailer", "upgrade", "proxy-connection"})
+
+
+def _fallback_headers(request_headers, provider: str, fallback_key: str) -> dict:
+    """Headers for the direct provider request.
+
+    Drops every X-Tolvyn-* header in any casing, whether the client set it at
+    construction or the caller passed it per request: they carry attribution —
+    X-Tolvyn-User and X-Tolvyn-End-Customer can be personal data — and mean
+    nothing to the provider. Then replaces auth with the provider's own key.
+    """
+    headers = {k: v for k, v in request_headers.items()
+               if k.lower() not in _NOT_FORWARDED and not k.lower().startswith("x-tolvyn-")}
+    _apply_fallback_auth(headers, provider, fallback_key)
+    return headers
+
+
 def make_failopen_transport(
     proxy_url: str,
     fallback_url: str,
@@ -99,36 +135,33 @@ def make_failopen_transport(
 ) -> httpx.HTTPTransport:
     """
     Return an httpx.HTTPTransport subclass that retries against the fallback
-    URL when the proxy is unreachable or returns 503.
+    URL only when the proxy was never reached, or answered 503 with
+    X-Tolvyn-Unavailable: 1.
     """
 
     class FailOpenTransport(httpx.HTTPTransport):
         def handle_request(self, request: httpx.Request) -> httpx.Response:
+            body = request.read()  # buffered once, replayed intact on fallback
             try:
                 response = super().handle_request(request)
-                if response.status_code == 503:
-                    raise httpx.HTTPStatusError(
-                        "503 from proxy", request=request, response=response
-                    )
-                return response
             except Exception as exc:
                 if not _should_failopen(exc) or not fallback_key:
                     raise
-                print(
-                    f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
-                    file=sys.stderr,
-                )
-                new_url = _build_fallback_url(request.url, fallback_url)
-                new_headers = dict(request.headers)
-                _apply_fallback_auth(new_headers, provider, fallback_key)
-                fallback_req = httpx.Request(
-                    method=request.method,
-                    url=new_url,
-                    headers=new_headers,
-                    content=request.content,
-                )
-                transport = httpx.HTTPTransport()
-                return transport.handle_request(fallback_req)
+            else:
+                if not (fallback_key and _is_tolvyn_unavailable(response)):
+                    return response
+                response.close()  # discard TOLVYN's 503 before going direct
+            print(
+                f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
+                file=sys.stderr,
+            )
+            fallback_req = httpx.Request(
+                method=request.method,
+                url=_build_fallback_url(request.url, fallback_url),
+                headers=_fallback_headers(request.headers, provider, fallback_key),
+                content=body,
+            )
+            return httpx.HTTPTransport().handle_request(fallback_req)
 
     return FailOpenTransport()
 
@@ -143,30 +176,26 @@ def make_failopen_async_transport(
 
     class AsyncFailOpenTransport(httpx.AsyncHTTPTransport):
         async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            body = await request.aread()  # buffered once, replayed intact on fallback
             try:
                 response = await super().handle_async_request(request)
-                if response.status_code == 503:
-                    raise httpx.HTTPStatusError(
-                        "503 from proxy", request=request, response=response
-                    )
-                return response
             except Exception as exc:
                 if not _should_failopen(exc) or not fallback_key:
                     raise
-                print(
-                    f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
-                    file=sys.stderr,
-                )
-                new_url = _build_fallback_url(request.url, fallback_url)
-                new_headers = dict(request.headers)
-                _apply_fallback_auth(new_headers, provider, fallback_key)
-                fallback_req = httpx.Request(
-                    method=request.method,
-                    url=new_url,
-                    headers=new_headers,
-                    content=request.content,
-                )
-                transport = httpx.AsyncHTTPTransport()
-                return await transport.handle_async_request(fallback_req)
+            else:
+                if not (fallback_key and _is_tolvyn_unavailable(response)):
+                    return response
+                await response.aclose()  # discard TOLVYN's 503 before going direct
+            print(
+                f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
+                file=sys.stderr,
+            )
+            fallback_req = httpx.Request(
+                method=request.method,
+                url=_build_fallback_url(request.url, fallback_url),
+                headers=_fallback_headers(request.headers, provider, fallback_key),
+                content=body,
+            )
+            return await httpx.AsyncHTTPTransport().handle_async_request(fallback_req)
 
     return AsyncFailOpenTransport()

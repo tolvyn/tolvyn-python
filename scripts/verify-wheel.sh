@@ -79,6 +79,12 @@ import sys
 from tolvyn import OpenAI, Anthropic          # noqa: F401
 print("  from tolvyn import OpenAI, Anthropic — ok")
 
+# BE-515: with a fallback key (fail-open on) tolvyn.Anthropic hands the SDK an
+# httpx client; anthropic 1.x (httpx2) rejected it with TypeError at
+# construction. Build one on whatever anthropic the wheel's pin resolved.
+Anthropic(tolvyn_api_key="tlv_live_test", anthropic_api_key="sk-direct")
+print("  Anthropic with a fallback key — ok")
+
 from server import start, SEEN
 srv = start()
 port = srv.server_address[1]

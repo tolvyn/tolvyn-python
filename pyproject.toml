@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tolvyn"
-version = "0.1.10"
+version = "0.1.11"
 description = "Drop-in replacement for the OpenAI/Anthropic/Google/DeepSeek SDKs — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -19,7 +19,11 @@ license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
     "openai>=1.0.0",
-    "anthropic>=0.20.0",
+    # BE-515: anthropic 1.0 moved to `httpx2` and rejects the `httpx.Client` that
+    # tolvyn.Anthropic passes for fail-open -- every client built with a fallback
+    # key raised TypeError at construction. The upper bound is the stopgap until
+    # the transport supports httpx2; tests/test_client_construction.py guards it.
+    "anthropic>=0.20.0,<1",
     # BE-488: tolvyn/_client.py, _anthropic.py, _deepseek.py and _failopen.py
     # all `import httpx` and it was never declared. It worked by accident while
     # `openai` happened to depend on httpx; openai 3.x declares `httpx2`
