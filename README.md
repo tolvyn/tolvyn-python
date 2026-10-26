@@ -116,8 +116,17 @@ The TOLVYN proxy strips all six headers before forwarding the request upstream �
 
 If TOLVYN's proxy is unreachable, the SDK automatically retries the request directly against the provider (requires `openai_api_key` / `anthropic_api_key` to be set). Disable with `fail_open=False`.
 
-Triggers on: `httpx.ConnectError`, `ConnectTimeout`, `ReadTimeout`, `WriteTimeout`, `RemoteProtocolError`, and HTTP 503 from the proxy.
-Does NOT trigger on: 4xx errors (auth failures, rate limits, bad requests).
+Triggers only when the request never reached TOLVYN — `httpx.ConnectError` (refused,
+DNS failure, TLS handshake) or `httpx.ConnectTimeout` — or on an HTTP 503 carrying
+`X-Tolvyn-Unavailable: 1`.
+
+Fail-open does NOT trigger on: 4xx errors (auth failures, budget and rate limits, kill
+switch, bad requests), a plain 503 (the provider's own, passed through), or a timeout
+or reset after the request was sent — TOLVYN may already have forwarded it, and a
+direct retry would be a second, unmetered provider call.
+
+The direct request never carries `X-Tolvyn-*` headers, whether set on the client or
+per request.
 
 Requests that fail open bypass the proxy and are not metered for that call.
 
