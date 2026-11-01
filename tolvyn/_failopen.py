@@ -1,7 +1,17 @@
-"""Fail-open transport wrapper for httpx."""
+"""Fail-open transport wrapper for httpx and httpx2.
+
+anthropic 1.x moved from httpx to httpx2, a fork with the same API; openai still
+accepts httpx. The transports below are built from whichever module the wrapped
+SDK uses, passed as ``http``, so one implementation serves both.
+"""
 import re
 import sys
 import httpx
+
+try:  # installed alongside anthropic >= 1
+    import httpx2
+except ImportError:  # pragma: no cover - depends on the installed anthropic
+    httpx2 = None
 
 
 # FAIL OPEN ONLY WHEN THE PROXY WAS NEVER REACHED. ConnectError covers refused
@@ -14,9 +24,8 @@ import httpx
 # be serving (and charging for) it — so retrying direct produced a second,
 # unmetered provider call. Measured: a read timeout after forwarding gave two
 # provider calls, one through TOLVYN and one around it.
-_PROXY_ERRORS = (
-    httpx.ConnectError,
-    httpx.ConnectTimeout,
+_PROXY_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout) + (
+    (httpx2.ConnectError, httpx2.ConnectTimeout) if httpx2 is not None else ()
 )
 
 # A 503 fails open ONLY when TOLVYN itself says it is unavailable. A plain 503 on
@@ -27,7 +36,7 @@ _PROXY_ERRORS = (
 TOLVYN_UNAVAILABLE_HEADER = "x-tolvyn-unavailable"
 
 
-def _is_tolvyn_unavailable(response: httpx.Response) -> bool:
+def _is_tolvyn_unavailable(response) -> bool:
     return response.status_code == 503 and response.headers.get(TOLVYN_UNAVAILABLE_HEADER, "").strip() == "1"
 
 
@@ -39,7 +48,7 @@ def _should_failopen(exc: Exception) -> bool:
     return isinstance(exc, _PROXY_ERRORS)
 
 
-def _build_fallback_url(request_url: httpx.URL, fallback_base: str) -> httpx.URL:
+def _build_fallback_url(request_url, fallback_base: str, http=httpx):
     """Build the direct-provider URL from a proxy request URL.
 
     Strips the /v1/proxy/{provider}/ prefix from the request path, then prepends
@@ -56,7 +65,7 @@ def _build_fallback_url(request_url: httpx.URL, fallback_base: str) -> httpx.URL
         fallback_base:  https://api.anthropic.com
         → https://api.anthropic.com/v1/messages
     """
-    fb = httpx.URL(fallback_base)
+    fb = http.URL(fallback_base)
     fb_base_path = fb.path.rstrip("/")  # "/v1" or ""
 
     stripped = _PROXY_PREFIX_RE.sub("/", request_url.path)
@@ -132,15 +141,17 @@ def make_failopen_transport(
     fallback_url: str,
     fallback_key: str,
     provider: str,
-) -> httpx.HTTPTransport:
+    http=httpx,
+):
     """
-    Return an httpx.HTTPTransport subclass that retries against the fallback
+    Return an ``http.HTTPTransport`` subclass (httpx by default, httpx2 for
+    anthropic >= 1) that retries against the fallback
     URL only when the proxy was never reached, or answered 503 with
     X-Tolvyn-Unavailable: 1.
     """
 
-    class FailOpenTransport(httpx.HTTPTransport):
-        def handle_request(self, request: httpx.Request) -> httpx.Response:
+    class FailOpenTransport(http.HTTPTransport):
+        def handle_request(self, request):
             body = request.read()  # buffered once, replayed intact on fallback
             try:
                 response = super().handle_request(request)
@@ -155,13 +166,13 @@ def make_failopen_transport(
                 f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
                 file=sys.stderr,
             )
-            fallback_req = httpx.Request(
+            fallback_req = http.Request(
                 method=request.method,
-                url=_build_fallback_url(request.url, fallback_url),
+                url=_build_fallback_url(request.url, fallback_url, http),
                 headers=_fallback_headers(request.headers, provider, fallback_key),
                 content=body,
             )
-            return httpx.HTTPTransport().handle_request(fallback_req)
+            return http.HTTPTransport().handle_request(fallback_req)
 
     return FailOpenTransport()
 
@@ -171,11 +182,12 @@ def make_failopen_async_transport(
     fallback_url: str,
     fallback_key: str,
     provider: str,
-) -> httpx.AsyncHTTPTransport:
+    http=httpx,
+):
     """Async variant of the fail-open transport."""
 
-    class AsyncFailOpenTransport(httpx.AsyncHTTPTransport):
-        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    class AsyncFailOpenTransport(http.AsyncHTTPTransport):
+        async def handle_async_request(self, request):
             body = await request.aread()  # buffered once, replayed intact on fallback
             try:
                 response = await super().handle_async_request(request)
@@ -190,12 +202,12 @@ def make_failopen_async_transport(
                 f"TOLVYN proxy unreachable — routing direct to {provider} (fail-open)",
                 file=sys.stderr,
             )
-            fallback_req = httpx.Request(
+            fallback_req = http.Request(
                 method=request.method,
-                url=_build_fallback_url(request.url, fallback_url),
+                url=_build_fallback_url(request.url, fallback_url, http),
                 headers=_fallback_headers(request.headers, provider, fallback_key),
                 content=body,
             )
-            return await httpx.AsyncHTTPTransport().handle_async_request(fallback_req)
+            return await http.AsyncHTTPTransport().handle_async_request(fallback_req)
 
     return AsyncFailOpenTransport()
