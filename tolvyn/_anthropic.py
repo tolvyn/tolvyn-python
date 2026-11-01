@@ -1,6 +1,8 @@
 """TOLVYN Anthropic wrapper — thin drop-in over the official anthropic package."""
 from __future__ import annotations
 
+import importlib
+
 import anthropic as _anthropic
 import httpx
 
@@ -14,6 +16,23 @@ from tolvyn._failopen import make_failopen_transport, make_failopen_async_transp
 
 _ANTHROPIC_DEFAULT_URL = "https://proxy.tolvyn.io/v1/proxy/anthropic/"
 _ANTHROPIC_DIRECT_URL = "https://api.anthropic.com"
+
+
+def _http_module():
+    """The httpx-compatible module the installed anthropic builds clients from.
+
+    anthropic 0.x uses httpx; 1.x and later use httpx2 and reject an httpx
+    client with TypeError. Read from anthropic's own default client class rather
+    than inferred from a version number, so a future move is followed too.
+    """
+    for cls in getattr(_anthropic, "DefaultHttpxClient", object).__mro__:
+        root = cls.__module__.split(".")[0]
+        if cls.__name__ == "Client" and root in ("httpx", "httpx2"):
+            return importlib.import_module(root)
+    return httpx
+
+
+_HTTP = _http_module()
 
 
 class Anthropic(_anthropic.Anthropic):
@@ -46,8 +65,8 @@ class Anthropic(_anthropic.Anthropic):
         headers = build_tolvyn_headers(team, service, feature, agent, user, end_customer)
 
         if fail_open and fallback and "http_client" not in kwargs:
-            transport = make_failopen_transport(url, _ANTHROPIC_DIRECT_URL, fallback, "Anthropic")
-            kwargs["http_client"] = httpx.Client(transport=transport)
+            transport = make_failopen_transport(url, _ANTHROPIC_DIRECT_URL, fallback, "Anthropic", http=_HTTP)
+            kwargs["http_client"] = _HTTP.Client(transport=transport)
 
         super().__init__(
             api_key=key,
@@ -83,8 +102,8 @@ class AsyncAnthropic(_anthropic.AsyncAnthropic):
         headers = build_tolvyn_headers(team, service, feature, agent, user, end_customer)
 
         if fail_open and fallback and "http_client" not in kwargs:
-            transport = make_failopen_async_transport(url, _ANTHROPIC_DIRECT_URL, fallback, "Anthropic")
-            kwargs["http_client"] = httpx.AsyncClient(transport=transport)
+            transport = make_failopen_async_transport(url, _ANTHROPIC_DIRECT_URL, fallback, "Anthropic", http=_HTTP)
+            kwargs["http_client"] = _HTTP.AsyncClient(transport=transport)
 
         super().__init__(
             api_key=key,

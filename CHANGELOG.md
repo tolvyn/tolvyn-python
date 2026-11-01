@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.12 — 2026-11-01
+
+### Anthropic
+
+- **`tolvyn.Anthropic` and `tolvyn.AsyncAnthropic` now work with `anthropic` 1.x and
+  later.** Those releases use `httpx2` instead of `httpx`; the fail-open client is
+  now built from whichever of the two the installed `anthropic` uses, so a client
+  with a fallback key no longer fails at construction.
+- **The `anthropic<1` limit added in 0.1.11 is removed.** Any `anthropic` from 0.20
+  up is supported. Tested on 0.125.0, 1.17.0 and 2.3.0, including fail-open.
+
 ## 0.1.11 — 2026-10-26
 
 ### Fail-open: changed behaviour
