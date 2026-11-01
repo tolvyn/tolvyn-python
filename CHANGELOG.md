@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.13 — unreleased
+
+### Documentation
+
+- **The Google example now uses `gemini-3.8-flash`.** The README and the
+  `tolvyn.Google` docstring named `gemini-1.5-flash`, which Google no longer serves.
+
 ## 0.1.12 — 2026-11-01
 
 ### Anthropic

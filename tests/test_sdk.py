@@ -162,3 +162,15 @@ def test_fallback_auth_strips_all_inbound_auth():
     h = {"authorization": "Bearer tlv", "x-api-key": "tlv", "x-goog-api-key": "tlv"}
     _apply_fallback_auth(h, "anthropic", "sk-ant-fallback")
     assert h == {"x-api-key": "sk-ant-fallback"}
+
+
+def test_examples_name_no_shut_down_model():
+    # Copied examples are run as-is; a model the provider has shut down fails on
+    # the first call. Gemini 1.x and Claude 3.5 Haiku are no longer served.
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    files = [root / "README.md", *sorted((root / "tolvyn").glob("*.py"))]
+    for f in files:
+        text = f.read_text()
+        for dead in ("gemini-1.0-", "gemini-1.5-", "claude-3-5-haiku"):
+            assert dead not in text, f"{f.name} names {dead}"

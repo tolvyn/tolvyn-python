@@ -62,7 +62,7 @@ anth = Anthropic(
 
 # Google (requires the [google] extra)
 goog = Google(tolvyn_api_key="tlv_live_...")
-model = goog.GenerativeModel("gemini-1.5-flash")
+model = goog.GenerativeModel("gemini-3.8-flash")
 ```
 
 ## Async
