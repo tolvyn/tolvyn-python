@@ -167,6 +167,7 @@ def test_fallback_auth_strips_all_inbound_auth():
 def test_examples_name_no_shut_down_model():
     # Copied examples are run as-is; a model the provider has shut down fails on
     # the first call. Gemini 1.x and Claude 3.5 Haiku are no longer served.
+    # DeepSeek examples use the current name; the older ones still work.
     import pathlib
     root = pathlib.Path(__file__).resolve().parent.parent
     files = [root / "README.md", *sorted((root / "tolvyn").glob("*.py"))]
@@ -174,3 +175,4 @@ def test_examples_name_no_shut_down_model():
         text = f.read_text()
         for dead in ("gemini-1.0-", "gemini-1.5-", "claude-3-5-haiku"):
             assert dead not in text, f"{f.name} names {dead}"
+        assert "deepseek-chat" not in text, f"{f.name}: use deepseek-flash"

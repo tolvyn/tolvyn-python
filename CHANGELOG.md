@@ -6,6 +6,8 @@
 
 - **The Google example now uses `gemini-3.8-flash`.** The README and the
   `tolvyn.Google` docstring named `gemini-1.5-flash`, which Google no longer serves.
+- **The `tolvyn.DeepSeek` docstring now uses `deepseek-flash`**, DeepSeek's current
+  model name. `deepseek-chat` and `deepseek-reasoner` still work.
 
 ## 0.1.12 — 2026-11-01
 
