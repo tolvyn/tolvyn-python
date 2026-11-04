@@ -1,4 +1,4 @@
-"""BE-90: DeepSeek wrapper fail-open tests (Python SDK, mirrors Node v1.0.9).
+"""DeepSeek wrapper fail-open tests (Python SDK, mirrors Node v1.0.9).
 
 Written BEFORE the implementation. On current code:
   - _build_fallback_url test  -> RED (_PROXY_PREFIX_RE excludes `deepseek`, so the

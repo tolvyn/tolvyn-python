@@ -21,7 +21,7 @@ from tolvyn._config import resolve_tolvyn_key, resolve_fallback_key
 _GOOGLE_DEFAULT_ENDPOINT = "proxy.tolvyn.io/v1/proxy/google"
 _GOOGLE_DIRECT_ENDPOINT = "generativelanguage.googleapis.com"
 
-# PY-03: track instance count for the multi-instance warning.
+# Track instance count for the multi-instance warning.
 _google_instance_count = 0
 _google_instance_lock = threading.Lock()
 
@@ -53,7 +53,7 @@ class Google:
         self._endpoint = proxy_endpoint or _GOOGLE_DEFAULT_ENDPOINT
         self._fallback_key = resolve_fallback_key(google_api_key, "GOOGLE_API_KEY")
 
-        # PY-01: Fail-open for Google is not yet supported. The google-generativeai
+        # Fail-open for Google is not yet supported. The google-generativeai
         # SDK does not expose its HTTP transport in a way that lets us inject the
         # same kind of httpx-based retry transport used for OpenAI and Anthropic.
         # Warn the caller honestly rather than silently swallowing the option.
@@ -68,7 +68,7 @@ class Google:
             )
         self._fail_open = False
 
-        # PY-03: warn on multiple instances — genai.configure() is global.
+        # Warn on multiple instances — genai.configure() is global.
         global _google_instance_count
         with _google_instance_lock:
             _google_instance_count += 1

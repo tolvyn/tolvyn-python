@@ -1,4 +1,4 @@
-"""Fail-open hardening (BE-507..BE-515).
+"""Fail-open hardening.
 
 Fail open ONLY when the proxy was never reached, or answered 503 with
 X-Tolvyn-Unavailable: 1. Never forward any X-Tolvyn-* header to the provider,

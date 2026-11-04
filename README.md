@@ -38,7 +38,7 @@ client = OpenAI(
 
 # Everything else stays the same
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="gpt-6-luna",
     messages=[{"role": "user", "content": "Hello"}],
 )
 ```
@@ -79,7 +79,7 @@ async def main():
 
     openai_resp, anth_resp = await asyncio.gather(
         openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-6-luna",
             messages=[{"role": "user", "content": "Hello"}],
         ),
         anth_client.messages.create(

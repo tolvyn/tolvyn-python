@@ -2,7 +2,7 @@
 # Build sdist+wheel, install THE WHEEL into a brand-new venv with nothing else,
 # and import it the way a customer does — then make one real call.
 #
-# WHY THIS EXISTS (BE-488). tolvyn 0.1.8 shipped without declaring httpx, which
+# WHY THIS EXISTS. tolvyn 0.1.8 shipped without declaring httpx, which
 # tolvyn/_client.py imports at module scope. It worked by accident while
 # `openai` happened to depend on httpx; openai 3.x declares `httpx2` instead, so
 # a clean `pip install tolvyn` resolves without it and
@@ -35,7 +35,7 @@ cp "$WHEEL" "$WORK/"
 cd "$WORK"
 python3 -m venv .venv
 # ONLY THE WHEEL. No openai, no httpx, no anything -- whatever the package
-# needs it must declare, which is the whole of what BE-488 was.
+# needs it must declare, which is the whole of what went wrong in 0.1.8.
 ./.venv/bin/pip install -q "./$(basename "$WHEEL")"
 echo "installed into a fresh venv:"
 ./.venv/bin/pip list 2>/dev/null | grep -iE "tolvyn|openai|anthropic|httpx" | sed 's/^/  /'
@@ -79,7 +79,7 @@ import sys
 from tolvyn import OpenAI, Anthropic          # noqa: F401
 print("  from tolvyn import OpenAI, Anthropic — ok")
 
-# BE-515: with a fallback key (fail-open on) tolvyn.Anthropic hands the SDK an
+# With a fallback key (fail-open on) tolvyn.Anthropic hands the SDK an
 # httpx client; anthropic 1.x (httpx2) rejected it with TypeError at
 # construction. Build one on whatever anthropic the wheel's pin resolved.
 Anthropic(tolvyn_api_key="tlv_live_test", anthropic_api_key="sk-direct")
@@ -114,7 +114,7 @@ print("  all six X-Tolvyn-* headers — ok")
 # version-specific problem would have been told the wrong answer by the package
 # itself, and nothing checked it. __version__ is now derived from the installed
 # metadata, so this assertion is a guard against someone reintroducing a
-# literal rather than against a typo. BE-489.
+# literal rather than against a typo.
 import tolvyn
 from importlib.metadata import version as _v
 if tolvyn.__version__ != _v("tolvyn"):

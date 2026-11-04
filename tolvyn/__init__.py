@@ -17,7 +17,7 @@ __all__ = [
 # 2026-10-13 the two drifted -- pyproject said 0.1.9, this said 0.1.8, and
 # `tolvyn 0.1.9` was PUBLISHED reporting `__version__ == "0.1.8"`. A customer
 # debugging a version-specific problem would have been told the wrong answer by
-# the package itself. BE-489.
+# the package itself.
 #
 # The fallback is for a source tree that was never installed (running tests from
 # a checkout without `pip install -e .`), where there is no metadata to read. It

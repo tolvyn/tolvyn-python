@@ -1,15 +1,19 @@
 # Changelog
 
-## 0.1.13 — unreleased
+## 0.1.13 — 2026-11-04
+
+This release also includes the 0.1.12 changes below.
 
 ### Documentation
 
+- **The OpenAI examples in the README now use `gpt-6-luna`.** OpenAI shuts down the
+  `gpt-4o` snapshots on 14 January 2027 and recommends `gpt-6-luna` as the replacement.
 - **The Google example now uses `gemini-3.8-flash`.** The README and the
   `tolvyn.Google` docstring named `gemini-1.5-flash`, which Google no longer serves.
 - **The `tolvyn.DeepSeek` docstring now uses `deepseek-flash`**, DeepSeek's current
   model name. `deepseek-chat` and `deepseek-reasoner` still work.
 
-## 0.1.12 — 2026-11-01
+## 0.1.12 — never published; included in 0.1.13
 
 ### Anthropic
 
@@ -40,12 +44,12 @@
 
 - The direct request no longer carries any `X-Tolvyn-*` header, set on the client
   or per request (`X-Tolvyn-User` and `X-Tolvyn-End-Customer` can be personal data).
-  Reported by Maram Sai Harsha Vardhan Reddy. (BE-507)
-- The direct request now sends the provider's Host, not the proxy's. (BE-511)
-- The discarded 503 response is closed before the retry. (BE-514)
+  Reported by Maram Sai Harsha Vardhan Reddy.
+- The direct request now sends the provider's Host, not the proxy's.
+- The discarded 503 response is closed before the retry.
 
 ### Dependencies
 
 - `anthropic` is pinned below 1.0. anthropic 1.x moved to `httpx2`, and
   `tolvyn.Anthropic` / `AsyncAnthropic` raised `TypeError` at construction
-  whenever a fallback key was set. (BE-515)
+  whenever a fallback key was set.

@@ -105,8 +105,8 @@ def _apply_fallback_auth(headers: dict, provider: str, fallback_key: str) -> Non
       - Anthropic -> x-api-key: <key>
       - Google    -> x-goog-api-key: <key>
 
-    Fixes PY-08 (Bearer sent to Anthropic/Google → 401) and PY-09 (the TOLVYN key
-    in the original x-api-key/x-goog-api-key leaking to the provider on fallback).
+    Prevents a Bearer sent to Anthropic/Google (401) and the TOLVYN key
+    in the original x-api-key/x-goog-api-key leaking to the provider on fallback.
     httpx lowercases header keys in dict(request.headers), so keys are lowercase.
     """
     for h in _ALL_AUTH_HEADERS:

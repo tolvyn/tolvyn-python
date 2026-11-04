@@ -4,7 +4,7 @@
 # PYTHON HAS NO prepublishOnly, which is why this script exists rather than a
 # note in a README. npm runs a hook before `npm publish`; twine runs nothing, so
 # the only way to make a check unskippable is to make it part of the command
-# somebody actually types. BE-488 shipped because the two obvious checks --
+# somebody actually types. 0.1.8 shipped broken because the two obvious checks --
 # pytest, and `import tolvyn` -- both pass on a package whose documented first
 # line does not work.
 #
