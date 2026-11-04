@@ -1,4 +1,4 @@
-"""BE-515: every client builds with a fallback key (fail-open on) on the
+"""Every client builds with a fallback key (fail-open on) on the
 dependency versions pyproject.toml allows. anthropic 1.x (httpx2) raised
 TypeError here, for sync and async alike."""
 import warnings

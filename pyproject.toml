@@ -4,16 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tolvyn"
-version = "0.1.12"
+version = "0.1.13"
 description = "Drop-in replacement for the OpenAI/Anthropic/Google/DeepSeek SDKs — routes through TOLVYN for cost attribution, budget enforcement, and audit logging."
 readme = "README.md"
 requires-python = ">=3.9"
 # A SPDX STRING, NOT A TOML TABLE. setuptools deprecated the table form and
 # names a deadline -- "By 2027-Feb-18, you need to update your project and
 # remove deprecated calls" -- so the build has been printing a
-# SetuptoolsDeprecationWarning on every wheel. BE-490.
+# SetuptoolsDeprecationWarning on every wheel.
 license = "MIT"
-# BE-491 FIXED: the LICENSE file now exists, so the key that ships it is set.
+# The LICENSE file now exists, so the key that ships it is set.
 # Until 2026-10-13 there was no LICENSE in this repository and README.md's own
 # [License: MIT](LICENSE) badge linked to nothing -- on PyPI as well as GitHub.
 license-files = ["LICENSE"]
@@ -24,7 +24,7 @@ dependencies = [
     # both majors are supported; tests/test_client_construction.py builds a
     # client with a fallback key on each.
     "anthropic>=0.20.0",
-    # BE-488: tolvyn/_client.py, _anthropic.py, _deepseek.py and _failopen.py
+    # tolvyn/_client.py, _anthropic.py, _deepseek.py and _failopen.py
     # all `import httpx` and it was never declared. It worked by accident while
     # `openai` happened to depend on httpx; openai 3.x declares `httpx2`
     # instead, so a clean `pip install tolvyn` now resolves WITHOUT httpx and

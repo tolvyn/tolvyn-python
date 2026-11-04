@@ -30,7 +30,7 @@ class DeepSeek(_openai.OpenAI):
 
         from tolvyn import DeepSeek
         client = DeepSeek(tolvyn_api_key="tlv_live_...")
-        client.chat.completions.create(model="deepseek-chat", messages=[...])
+        client.chat.completions.create(model="deepseek-flash", messages=[...])
     """
 
     def __init__(

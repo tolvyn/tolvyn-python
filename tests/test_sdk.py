@@ -123,7 +123,7 @@ def test_anthropic_tag_headers():
     assert "X-Tolvyn-Service" not in headers
 
 
-# ── Fail-open direct auth (PY-08 / PY-09) ─────────────────────────────────────
+# ── Fail-open direct auth ─────────────────────────────────────
 
 def test_fallback_auth_openai():
     from tolvyn._failopen import _apply_fallback_auth
@@ -142,8 +142,8 @@ def test_fallback_auth_anthropic_strips_tolvyn_key():
     h = {"x-api-key": "tlv_live_secret", "anthropic-version": "2023-06-01"}
     _apply_fallback_auth(h, "Anthropic", "sk-ant-fallback")
     assert h["x-api-key"] == "sk-ant-fallback"          # provider key, not TOLVYN key
-    assert "tlv_live_secret" not in h.values()           # PY-09: no leak
-    assert "authorization" not in h                       # PY-08: no Bearer
+    assert "tlv_live_secret" not in h.values()           # no leak
+    assert "authorization" not in h                       # no Bearer
     assert h["anthropic-version"] == "2023-06-01"         # required header preserved
 
 
@@ -162,3 +162,18 @@ def test_fallback_auth_strips_all_inbound_auth():
     h = {"authorization": "Bearer tlv", "x-api-key": "tlv", "x-goog-api-key": "tlv"}
     _apply_fallback_auth(h, "anthropic", "sk-ant-fallback")
     assert h == {"x-api-key": "sk-ant-fallback"}
+
+
+def test_examples_name_no_shut_down_model():
+    # Copied examples are run as-is; a model the provider has shut down fails on
+    # the first call. Gemini 1.x and Claude 3.5 Haiku are no longer served; gpt-4o's
+    # snapshots shut down on 2027-01-14.
+    # DeepSeek examples use the current name; the older ones still work.
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    files = [root / "README.md", *sorted((root / "tolvyn").glob("*.py"))]
+    for f in files:
+        text = f.read_text()
+        for dead in ("gemini-1.0-", "gemini-1.5-", "claude-3-5-haiku", "gpt-4o"):
+            assert dead not in text, f"{f.name} names {dead}"
+        assert "deepseek-chat" not in text, f"{f.name}: use deepseek-flash"
