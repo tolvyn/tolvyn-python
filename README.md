@@ -1,6 +1,6 @@
 # tolvyn
 
-Drop-in replacement for `openai` and `anthropic`. One line change. Every AI call metered, attributed, and governed.
+Drop-in replacement for `openai`, `anthropic`, Google's `google-generativeai` and DeepSeek. One line change. Every AI call metered, attributed, and governed.
 
 [![PyPI version](https://img.shields.io/pypi/v/tolvyn.svg)](https://pypi.org/project/tolvyn/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -43,10 +43,10 @@ response = client.chat.completions.create(
 )
 ```
 
-## All three providers
+## All four providers
 
 ```python
-from tolvyn import OpenAI, Anthropic, Google
+from tolvyn import OpenAI, Anthropic, Google, DeepSeek
 
 # OpenAI
 oai = OpenAI(
@@ -63,6 +63,12 @@ anth = Anthropic(
 # Google (requires the [google] extra)
 goog = Google(tolvyn_api_key="tlv_live_...")
 model = goog.GenerativeModel("gemini-3.8-flash")
+
+# DeepSeek (OpenAI-compatible; used exactly like OpenAI)
+ds = DeepSeek(
+    tolvyn_api_key="tlv_live_...",
+    deepseek_api_key="sk-...",          # optional — enables fail-open fallback
+)
 ```
 
 ## Async
