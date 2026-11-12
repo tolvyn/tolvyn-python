@@ -5,7 +5,7 @@ Drop-in replacement for `openai`, `anthropic`, Google's `google-generativeai` an
 [![PyPI version](https://img.shields.io/pypi/v/tolvyn.svg)](https://pypi.org/project/tolvyn/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**10,000 free requests forever. No credit card.**
+**10,000 free requests a month. No credit card.**
 
 ## Install
 
